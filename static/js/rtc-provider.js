@@ -6,6 +6,15 @@
 
     let ws = new WebSocket("ws://" + location.host + "/webrtc");
 
+    let recvers = [];
+    let senders = [];
+    let server_status = "";
+    function refresh_status() {
+        $("#server_status").html("status:["+server_status+"]");
+        $("#receivers").html("receivers:["+recvers.length+"]");
+        $("#senders").html("senders:["+senders.length+"]");
+    }
+
     function create_recver(msg) {
         logi("create_recver: ", msg);
     }
@@ -33,10 +42,12 @@
     handlers["request_setanswer_rtcsender"] = setanswer;
 
     ws.onopen = function() {
-        $("#info").html("ws opened.");
+        server_status = "OPEN";
+        refresh_status();
     };
     ws.onclose = function() {
-        $("#info").html("ws closed");
+        server_status = "CLOSE";
+        refresh_status();
     };
     ws.onmessage = function(e) {
         let msg = JSON.parse(e.data);
@@ -47,5 +58,6 @@
         } else {
             bad_request(msg);
         }
+        refresh_status();
     };
 }());
