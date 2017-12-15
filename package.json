@@ -1,0 +1,23 @@
+{
+  "name": "rtc-service",
+  "version": "1.0.0",
+  "description": "Use a web browser to provide WebRTC service.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/oswystan/rtc-service.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/oswystan/rtc-service/issues"
+  },
+  "homepage": "https://github.com/oswystan/rtc-service#readme",
+  "dependencies": {
+    "express": "^4.16.2",
+    "express-ws": "^3.0.0"
+  }
+}

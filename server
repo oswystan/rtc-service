@@ -1,0 +1,73 @@
+#!/usr/bin/env node
+/*
+ *********************************************************************************
+ *                     Copyright (C) 2017 wystan
+ *
+ *       filename: bdd_in_browser.js
+ *    description:
+ *        created: 2017-11-30 10:59:19
+ *         author: wystan
+ *
+ *********************************************************************************
+ */
+
+var logi = console.info;
+var logw = console.warn;
+var loge = console.error;
+var logd = console.debug;
+
+var provider = null;
+
+var express = require('express');
+var app = express();
+var expressWs = require('express-ws')(app);
+app.use(express.static('static'));
+app.listen(8080);
+
+app.ws("/webrtc", function(ws, req) {
+    if (provider) ws.close();
+    else provider = new RtcProvider(ws);
+});
+
+class RtcProvider {
+    //public methods
+    constructor(ws) {
+        log("new provider registered.");
+        this.ws = ws;
+        ws.on("close", function(e){
+            log("provider closed");
+            provider = null;
+        });
+        ws.on("message", this.onmsg.bind(this));
+        this.cb = null;
+    };
+    create_recver(offer, cb) {
+        this.cb = cb;
+        let req = {
+            "type": "request",
+            "action": "create",
+            "service": "rtcreceiver",
+            "sdp": offer
+        };
+        this.send(req);
+    };
+    destroy_recver(id, cb) {};
+    create_sender(cb) {};
+    destroy_sender(id, cb) {};
+    setanswer(senderId, answer, cb) {};
+
+    //private methods
+    _onmsg(msg) {
+        let resp = JSON.parse(msg);
+        if (this.cb) this.cb(resp);
+    };
+    _send(msg) {
+        if (this.ws) this.ws.send(JSON.stringify(msg));
+    };
+};
+
+
+logi("try: http://localhost:8080");
+
+/************************************* END **************************************/
+
