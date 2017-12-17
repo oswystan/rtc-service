@@ -17,10 +17,12 @@
     "desc": "",
     "action": "create",
     "service": "rtcreceiver",
-    "id":"",
-    "sdp":{
-        "type": "answer",
-        "sdp": "xxx"
+    "data" : {
+        "id":"",
+        "sdp":{
+            "type": "answer",
+            "sdp": "xxx"
+        }
     }
 }
 
@@ -49,6 +51,7 @@
     "type": "request",
     "action": "create",
     "service": "rtcsender",
+    "sourceid": ""
 }
 {
     "type": "response",
@@ -56,10 +59,12 @@
     "desc": "",
     "action": "create",
     "service": "rtcsender",
-    "id":"",
-    "sdp":{
-        "type": "offer",
-        "sdp": "xxx"
+    "data" : {
+        "id":"",
+        "sdp":{
+            "type": "offer",
+            "sdp": "xxx"
+        }
     }
 }
 
@@ -100,5 +105,5 @@
     "desc": "",
     "action": "setanswer",
     "service": "rtcsender",
-    "id":""
+    "data": { "id": ""}
 }
