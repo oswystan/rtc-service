@@ -41,7 +41,7 @@
     "desc": "",
     "action": "destroy",
     "service": "rtcreceiver",
-    "id":""
+    "data": { "id": "" }
 }
 
 //=======================================
@@ -83,7 +83,7 @@
     "desc": "",
     "action": "destroy",
     "service": "rtcsender",
-    "id":""
+    "data": { "id": "" }
 }
 
 //=======================================

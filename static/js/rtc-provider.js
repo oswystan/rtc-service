@@ -2,7 +2,7 @@
     var logi = console.info;
     var logw = console.warn;
     var loge = console.error;
-    var logd = console.debug;
+    var logd = console.log;
 
     let PC = RTCPeerConnection;
     let MD = navigator.mediaDevices;
@@ -40,9 +40,9 @@
         };
         return ws && ws.send(JSON.stringify(resp));
     }
-    function findsrc(id) {
-        for (var i = 0; i < recvers.length; i++) {
-            if (recvers[i]._genid === id) return recvers[i];
+    function findpc(which, id) {
+        for (var i = 0; i < which.length; i++) {
+            if (which[i]._genid === id) return which[i];
         }
         return null;
     }
@@ -54,6 +54,7 @@
                 pc._genid = gen_id();
                 recvers.push(pc);
                 succ(msg, {id: pc._genid, sdp: pc.localDescription});
+                logd("");
             }
         };
 
@@ -64,43 +65,79 @@
     }
     function create_sender(msg) {
         logi("create_sender: ", msg);
+        let src = findpc(recvers, msg.sourceid);
+        // if (!src) return fail(msg, {code: -1, message:"fail to find source " + msg.sourceid});
         let pc = new PC(rtccfg);
-        let src = findsrc(msg.sourceid);
-        if (!src) return fail(msg, {code: -1, message:"fail to find source " + msg.sourceid});
 
         pc.onicegatheringstatechange = function() {
             if (pc.iceGatheringState === "complete") {
                 pc._genid = gen_id();
                 senders.push(pc);
                 succ(msg, {id: pc._genid, sdp: pc.localDescription});
+                logd("send success");
             }
         };
+        function addstream(stream) {
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            pc.createOffer({offerToReceiveVideo: false, offerToReceiveAudio: false})
+                .then(function(sdp) {
+                    pc.setLocalDescription(sdp);
+                })
+                .catch(function(e){ fail(msg, e); });
+        }
 
-        src.getTracks().forEach(track => pc.addTrack(track, src.getRemoteStreams()[0]));
-        pc.createOffer({offerToReceiveVideo: false, offerToReceiveAudio: false})
-            .then(function(sdp) {
-                pc.setLocalDescription(sdp);
-            })
-            .catch(function(e){ fail(msg, e); });
+        if (!src) {
+            logi("create new sender by local stream");
+            MD.getUserMedia({audio:true, video:true}).then(function(stream) {
+                addstream(stream);
+            }).catch(function(e) {
+                loge("fail to get user media", e);
+                fail(msg, e);
+            });
+        } else {
+            addstream(src.getRemoteStreams()[0]);
+        }
     }
     function destroy_recver(msg) {
-        logi("destroy_recver:", msg);
+        logi("destroy_recver:", msg.id);
+        let src = findpc(recvers, msg.id);
+        if (!src) return fail(msg, {code: -1, message:"can not to find source " + msg.id});
+        recvers.splice(recvers.indexOf(src), 1);
+        close_stream(src.getRemoteStreams());
+        close_stream(src.getLocalStreams());
+        src.close();
+        logi("receiver", msg.id, "destroied.");
+        succ(msg, {id: msg.id});
     }
     function destroy_sender(msg) {
-        logi("destroy_sender:", msg);
+        logi("destroy_sender:", msg.id);
+        let src = findpc(senders, msg.id);
+        if (!src) return fail(msg, {code: -1, message:"can not to find source " + msg.id});
+        senders.splice(senders.indexOf(src), 1);
+        close_stream(src.getRemoteStreams());
+        close_stream(src.getLocalStreams());
+        src.close();
+        logi("sender", msg.id, "destroied.");
+        succ(msg, {id: msg.id});
     }
     function setanswer(msg) {
-        logi("setanswer:", msg);
-        let src = findsrc(msg.id);
-        if (!src) return fail(msg, {code: -1, message:"fail to find source " + msg.id});
+        logi("setanswer:", msg.id);
+        let src = findpc(senders, msg.id);
+        if (!src) return fail(msg, {code: -1, message:"can not to find source " + msg.id});
         src.setRemoteDescription(msg.sdp);
         succ(msg, { id: msg.id });
     }
     function bad_request(msg) {
         loge("bad_request");
+        fail(msg, {code: -1, message:"bad request "});
     }
 
     function gen_id() {return ""+Math.floor(Math.random()*1e12); };
+    function close_stream(s) {
+        for(let stream of s) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    }
 
     let handlers = Object.create(null);
     handlers["request_create_rtcreceiver"] = create_recver;

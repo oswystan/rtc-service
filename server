@@ -14,7 +14,7 @@
 var logi = console.info;
 var logw = console.warn;
 var loge = console.error;
-var logd = console.debug;
+var logd = console.log;
 
 var provider = null;
 
@@ -25,21 +25,36 @@ app.use(express.static('static'));
 app.listen(8080);
 
 app.ws("/webrtc", function(ws, req) {
-    if (provider) ws.close();
+    logi("new client");
+    if (provider) { ws.close(); }
     else provider = new RtcProvider(ws);
 });
+
+function get_rtcprovider() {
+    return provider;
+}
+
+class RtcObject {
+    constructor(objectType, id, sdp) {
+        this.type = objectType;
+        this.id = id;
+        this.sdp = sdp;
+    };
+};
 
 class RtcProvider {
     //public methods
     constructor(ws) {
-        log("new provider registered.");
+        logi("new provider registered.");
         this.ws = ws;
         ws.on("close", function(e){
-            log("provider closed");
+            logw("provider closed");
             provider = null;
         });
-        ws.on("message", this.onmsg.bind(this));
+        ws.on("message", this._onmsg.bind(this));
         this.cb = null;
+        this.handler = null;
+        setImmediate(run_test);
     };
     create_recver(offer, cb) {
         this.cb = cb;
@@ -49,22 +64,154 @@ class RtcProvider {
             "service": "rtcreceiver",
             "sdp": offer
         };
-        this.send(req);
+        function callback(resp) {
+            if (resp.type !== "response" || resp.action !== "create" || resp.service !== "rtcreceiver") return;
+            if (resp.error !== 0) {
+                cb(null, {"error": resp.error, "desc": resp.desc});
+            } else {
+                let obj = new RtcObject("receiver", resp.data.id, resp.data.sdp);
+                cb(obj, null);
+            }
+        }
+        this.handler = callback;
+        this._send(req);
     };
-    destroy_recver(id, cb) {};
-    create_sender(cb) {};
-    destroy_sender(id, cb) {};
-    setanswer(senderId, answer, cb) {};
+    destroy_recver(id, cb) {
+        this.cb = cb;
+        let req = {
+            "type": "request",
+            "action": "destroy",
+            "service": "rtcreceiver",
+            "id": id,
+        };
+        function callback(resp) {
+            if (resp.type !== "response" || resp.action !== "destroy" || resp.service !== "rtcreceiver") return;
+            if (resp.error !== 0) {
+                cb({"error": resp.error, "desc": resp.desc});
+            } else {
+                cb(null);
+            }
+        }
+        this.handler = callback;
+        this._send(req);
+    };
+    create_sender(srcid, cb) {
+        this.cb = cb;
+        let req = {
+            "type": "request",
+            "action": "create",
+            "service": "rtcsender",
+            "sourceid": srcid
+        };
+        function callback(resp) {
+            if (resp.type !== "response" || resp.action !== "create" || resp.service !== "rtcsender") return;
+            if (resp.error !== 0) {
+                cb(null, {"error": resp.error, "desc": resp.desc});
+            } else {
+                let obj = new RtcObject("sender", resp.data.id, resp.data.sdp);
+                cb(obj, null);
+            }
+        }
+        this.handler = callback;
+        this._send(req);
+    };
+    destroy_sender(id, cb) {
+        this.cb = cb;
+        let req = {
+            "type": "request",
+            "action": "destroy",
+            "service": "rtcsender",
+            "id": id,
+        };
+        function callback(resp) {
+            if (resp.type !== "response" || resp.action !== "destroy" || resp.service !== "rtcsender") return;
+            if (resp.error !== 0) {
+                cb({"error": resp.error, "desc": resp.desc});
+            } else {
+                cb(null);
+            }
+        }
+        this.handler = callback;
+        this._send(req);
+    };
+    setanswer(senderId, answer, cb) {
+        this.cb = cb;
+        let req = {
+            "type": "request",
+            "action": "setanswer",
+            "service": "rtcsender",
+            "id": senderId,
+            "sdp": answer
+        };
+        function callback(resp) {
+            if (resp.type !== "response" || resp.action !== "setanswer" || resp.service !== "rtcsender") return;
+            if (resp.error !== 0) {
+                cb({"error": resp.error, "desc": resp.desc});
+            } else {
+                cb(null);
+            }
+        }
+        this.handler = callback;
+        this._send(req);
+    };
 
     //private methods
     _onmsg(msg) {
         let resp = JSON.parse(msg);
-        if (this.cb) this.cb(resp);
+        if (this.handler) this.handler(resp);
     };
     _send(msg) {
         if (this.ws) this.ws.send(JSON.stringify(msg));
     };
 };
+
+function run_test() {
+    let sender = null;
+    let recver = null;
+
+    let prov = get_rtcprovider();
+    if (!prov) {
+        loge("no provider avaliable");
+        return;
+    }
+
+    function destroy_all() {
+        prov.destroy_sender(sender.id, function(err){
+            logi("destory sender: ", sender.id);
+            prov.destroy_recver(recver.id, function(err){
+                logi("destory recver: ", recver.id);
+            })
+        });
+    }
+
+    function callback_answer(err) {
+        if (err) {
+            loge("fail to set answer:", err);
+        } else {
+            logi("set answer success");
+            setTimeout(destroy_all, 3000);
+        }
+    }
+    function callback_recver(obj, err) {
+        if (err) {
+            loge("fail to create recver");
+            return;
+        }
+        recver = obj;
+        logi("create recver:", obj.id);
+        prov.setanswer(sender.id, recver.sdp, callback_answer);
+    }
+    function callback_sender(obj, err) {
+        if (err) {
+            loge("fail to create sender");
+            return;
+        }
+        logi("create sender: ", obj.id);
+        sender = obj;
+        prov.create_recver(obj.sdp, callback_recver);
+    }
+    prov.create_sender("", callback_sender);
+}
 
 
 logi("try: http://localhost:8080");
