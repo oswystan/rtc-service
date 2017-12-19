@@ -54,7 +54,7 @@ class RtcProvider {
         ws.on("message", this._onmsg.bind(this));
         this.cb = null;
         this.handler = null;
-        //setImmediate(run_test);
+        setImmediate(run_test);
     };
     create_recver(offer, cb) {
         this.cb = cb;
@@ -168,6 +168,7 @@ class RtcProvider {
 function run_test() {
     let sender = null;
     let recver = null;
+    let s1 = s2 = r1 = r2 = null;
 
     let prov = get_rtcprovider();
     if (!prov) {
@@ -176,41 +177,63 @@ function run_test() {
     }
 
     function destroy_all() {
-        prov.destroy_sender(sender.id, function(err){
-            logi("destory sender: ", sender.id);
-            prov.destroy_recver(recver.id, function(err){
-                logi("destory recver: ", recver.id);
-            })
+        prov.destroy_sender(r2.id, function(e){
+            prov.destroy_sender(s2.id, function(e){
+                prov.destroy_recver(r1.id, function(e){
+                    prov.destroy_recver(s1.id, function(e){
+                        logi("destroy all.");
+                    });
+                });
+            });
+        });
+    }
+    function setanswer2(obj, err) {
+        if (err) {
+            loge("fail to create recver2:", err);
+            return;
+        }
+        r2 = obj;
+        prov.setanswer(s2.id, r2.sdp, function(err){
+            setTimeout(destroy_all, 10000);
         });
     }
 
-    function callback_answer(err) {
+    function new_recver2(obj, err) {
+        if (err) {
+            loge("fail to create sender2");
+            return;
+        }
+        s2 = obj;
+        logi("create sender:", obj.id);
+        prov.create_recver(obj.sdp, setanswer2);
+    }
+
+    function new_sender2(err) {
         if (err) {
             loge("fail to set answer:", err);
-        } else {
-            logi("set answer success");
-            setTimeout(destroy_all, 3000);
+            return;
         }
+        prov.create_sender(r1.id, new_recver2);
     }
-    function callback_recver(obj, err) {
+    function setanswer1(obj, err) {
         if (err) {
             loge("fail to create recver");
             return;
         }
-        recver = obj;
+        r1 = obj;
         logi("create recver:", obj.id);
-        prov.setanswer(sender.id, recver.sdp, callback_answer);
+        prov.setanswer(s1.id, r1.sdp, new_sender2);
     }
-    function callback_sender(obj, err) {
+    function new_recver1(obj, err) {
         if (err) {
             loge("fail to create sender");
             return;
         }
         logi("create sender: ", obj.id);
-        sender = obj;
-        prov.create_recver(obj.sdp, callback_recver);
+        s1 = obj;
+        prov.create_recver(obj.sdp, setanswer1);
     }
-    prov.create_sender("", callback_sender);
+    prov.create_sender("", new_recver1);
 }
 
 

@@ -116,7 +116,7 @@
         close_stream(src.getRemoteStreams());
         close_stream(src.getLocalStreams());
         src.close();
-        logi("destroy receiver:", msg.id);
+        logi("destroy sender:", msg.id);
         succ(msg, {id: msg.id});
     }
     function setanswer(msg) {
