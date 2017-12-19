@@ -54,7 +54,7 @@
                 pc._genid = gen_id();
                 recvers.push(pc);
                 succ(msg, {id: pc._genid, sdp: pc.localDescription});
-                logd("");
+                logd("create receiver:", pc._genid);
             }
         };
 
@@ -66,7 +66,6 @@
     function create_sender(msg) {
         logi("create_sender: ", msg);
         let src = findpc(recvers, msg.sourceid);
-        // if (!src) return fail(msg, {code: -1, message:"fail to find source " + msg.sourceid});
         let pc = new PC(rtccfg);
 
         pc.onicegatheringstatechange = function() {
@@ -74,7 +73,7 @@
                 pc._genid = gen_id();
                 senders.push(pc);
                 succ(msg, {id: pc._genid, sdp: pc.localDescription});
-                logd("send success");
+                logd("create sender:", pc._genid);
             }
         };
         function addstream(stream) {
@@ -99,25 +98,23 @@
         }
     }
     function destroy_recver(msg) {
-        logi("destroy_recver:", msg.id);
         let src = findpc(recvers, msg.id);
         if (!src) return fail(msg, {code: -1, message:"can not to find source " + msg.id});
         recvers.splice(recvers.indexOf(src), 1);
         close_stream(src.getRemoteStreams());
         close_stream(src.getLocalStreams());
         src.close();
-        logi("receiver", msg.id, "destroied.");
+        logi("destroy receiver:", msg.id);
         succ(msg, {id: msg.id});
     }
     function destroy_sender(msg) {
-        logi("destroy_sender:", msg.id);
         let src = findpc(senders, msg.id);
         if (!src) return fail(msg, {code: -1, message:"can not to find source " + msg.id});
         senders.splice(senders.indexOf(src), 1);
         close_stream(src.getRemoteStreams());
         close_stream(src.getLocalStreams());
         src.close();
-        logi("sender", msg.id, "destroied.");
+        logi("destroy receiver:", msg.id);
         succ(msg, {id: msg.id});
     }
     function setanswer(msg) {
