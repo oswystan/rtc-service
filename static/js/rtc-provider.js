@@ -27,6 +27,7 @@
             "action": req.action,
             "service": req.service,
         };
+        refresh_status();
         return ws && ws.send(JSON.stringify(resp));
     };
     function succ(req, data) {
@@ -38,6 +39,7 @@
             "service": req.service,
             "data": data
         };
+        refresh_status();
         return ws && ws.send(JSON.stringify(resp));
     }
     function findpc(which, id) {
@@ -160,6 +162,5 @@
         } else {
             bad_request(msg);
         }
-        refresh_status();
     };
 }());

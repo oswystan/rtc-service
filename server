@@ -54,7 +54,7 @@ class RtcProvider {
         ws.on("message", this._onmsg.bind(this));
         this.cb = null;
         this.handler = null;
-        // setImmediate(run_test);
+        //setImmediate(run_test);
     };
     create_recver(offer, cb) {
         this.cb = cb;
