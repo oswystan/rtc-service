@@ -6,7 +6,7 @@
 
     let PC = RTCPeerConnection;
     let MD = navigator.mediaDevices;
-    let rtccfg = {iceServers: [{ urls:[ "stun:stun.ekiga.net" ] }]};
+    let rtccfg = {iceServers: [{ urls:[ "stun:stun.xten.com" ] }]};
 
     let ws = new WebSocket("ws://" + location.host + "/webrtc");
 
@@ -105,6 +105,7 @@
         recvers.splice(recvers.indexOf(src), 1);
         close_stream(src.getRemoteStreams());
         close_stream(src.getLocalStreams());
+        src.getSenders().forEach(sender => src.removeTrack(sender));
         src.close();
         logi("destroy receiver:", msg.id);
         succ(msg, {id: msg.id});
@@ -115,6 +116,7 @@
         senders.splice(senders.indexOf(src), 1);
         close_stream(src.getRemoteStreams());
         close_stream(src.getLocalStreams());
+        src.getSenders().forEach(sender => src.removeTrack(sender));
         src.close();
         logi("destroy sender:", msg.id);
         succ(msg, {id: msg.id});

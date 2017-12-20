@@ -166,8 +166,6 @@ class RtcProvider {
 };
 
 function run_test() {
-    let sender = null;
-    let recver = null;
     let s1 = s2 = r1 = r2 = null;
 
     let prov = get_rtcprovider();
@@ -177,10 +175,14 @@ function run_test() {
     }
 
     function destroy_all() {
-        prov.destroy_sender(r2.id, function(e){
+        prov.destroy_recver(r2.id, function(e){
+            if (e) loge("fail to destroy recver: ", r2.id, e.desc);
             prov.destroy_sender(s2.id, function(e){
+                if (e) loge("fail to destroy recver: ", r2.id, e.desc);
                 prov.destroy_recver(r1.id, function(e){
-                    prov.destroy_recver(s1.id, function(e){
+                    if (e) loge("fail to destroy recver: ", r2.id, e.desc);
+                    prov.destroy_sender(s1.id, function(e){
+                        if (e) loge("fail to destroy recver: ", r2.id, e.desc);
                         logi("destroy all.");
                     });
                 });
