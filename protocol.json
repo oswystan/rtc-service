@@ -3,25 +3,30 @@
 // create receiver request & response
 //=======================================
 {
-    "type": "request",
-    "action": "create",
-    "service": "rtcreceiver",
-    "sdp":{
-        "type": "offer",
-        "sdp": "xxx"
-    }
+    "type"    : "request",
+    "action"  : "create",
+    "service" : "rtcreceiver",
+    "audio"   : true,
+    "video"   : true,
+    "sdp"     :                         // null - when you want to create a standalone receiver
+    {
+        "type" :"offer",
+        "sdp"  :"xxx"
+    },
 }
 {
-    "type": "response",
-    "error": 0,
-    "desc": "",
-    "action": "create",
-    "service": "rtcreceiver",
-    "data" : {
-        "id":"",
-        "sdp":{
-            "type": "answer",
-            "sdp": "xxx"
+    "type"    : "response",
+    "error"   : 0,
+    "desc"    : "",
+    "action"  : "create",
+    "service" : "rtcreceiver",
+    "data"    :
+    {
+        "id"  :"",
+        "sdp" :
+        {
+            "type" : "[answer|offer]", //'offer' - no sdp in request; 'answer' - sdp exist in request
+            "sdp"  : "xxx"
         }
     }
 }
@@ -30,40 +35,52 @@
 // destroy receiver request & response
 //=======================================
 {
-    "type": "request",
-    "action": "destroy",
-    "service": "rtcreceiver",
-    "id":"",
+    "type"    : "request",
+    "action"  : "destroy",
+    "service" : "rtcreceiver",
+    "id"      :"",
 }
 {
-    "type": "response",
-    "error": 0,
-    "desc": "",
-    "action": "destroy",
-    "service": "rtcreceiver",
-    "data": { "id": "" }
+    "type"    : "response",
+    "error"   : 0,
+    "desc"    : "",
+    "action"  : "destroy",
+    "service" : "rtcreceiver",
+    "data"    :
+    {
+        "id": ""
+    }
 }
 
 //=======================================
 // create sender request & response
 //=======================================
 {
-    "type": "request",
-    "action": "create",
-    "service": "rtcsender",
-    "sourceid": ""
+    "type"     : "request",
+    "action"   : "create",
+    "service"  : "rtcsender",
+    "sourceid" : "",          //Would be null when no source for this sender
+    "audio"    : true,
+    "video"    : true,
+    "sdp"      :              //Would be null when no source for this sender
+    {
+        "type" :"offer",
+        "sdp"  : "xxx"
+    }
 }
 {
-    "type": "response",
-    "error": 0,
-    "desc": "",
-    "action": "create",
-    "service": "rtcsender",
-    "data" : {
-        "id":"",
-        "sdp":{
-            "type": "offer",
-            "sdp": "xxx"
+    "type"    : "response",
+    "error"   : 0,
+    "desc"    : "",
+    "action"  : "create",
+    "service" : "rtcsender",
+    "data"    :
+    {
+        "id"  :"",
+        "sdp" :
+        {
+            "type" : "[answer|offer]", //'offer' - no sdp in request; 'answer' - sdp exist in request
+            "sdp"  : "xxx"
         }
     }
 }
@@ -72,38 +89,54 @@
 // destroy receiver request & response
 //=======================================
 {
-    "type": "request",
-    "action": "destroy",
-    "service": "rtcsender",
-    "id":"",
+    "type"    : "request",
+    "action"  : "destroy",
+    "service" : "rtcsender",
+    "id"      : "",
 }
 {
-    "type": "response",
-    "error": 0,
-    "desc": "",
-    "action": "destroy",
-    "service": "rtcsender",
-    "data": { "id": "" }
+    "type"    : "response",
+    "error"   : 0,
+    "desc"    : "",
+    "action"  : "destroy",
+    "service" : "rtcsender",
+    "data"    :
+    {
+        "id": ""
+    }
 }
 
+
 //=======================================
-// set answer to sender request & response
+// set answer to receiver or sender request & response
 //=======================================
 {
-    "type": "request",
-    "action": "setanswer",
-    "service": "rtcsender",
-    "id":"",
-    "sdp":{
-        "type": "answer",
-        "sdp": "xxx"
+    "type"    : "request",
+    "action"  : "setanswer",
+    "service" : "",
+    "id"      : "",
+    "sdp"     :
+    {
+        "type" : "answer",
+        "sdp"  : "xxx"
     }
 }
 {
-    "type": "response",
-    "error": 0,
-    "desc": "",
-    "action": "setanswer",
-    "service": "rtcsender",
-    "data": { "id": ""}
+    "type"    : "response",
+    "error"   : 0,
+    "desc"    : "",
+    "action"  : "setanswer",
+    "service" : "",
+    "data"    :
+    {
+        "id": ""
+    }
 }
+
+
+//=======================================
+// error defination
+//=======================================
+SUCC(0)     : Success
+ENOSR(1)    : No such resource
+ESRV(2)     : Internal error

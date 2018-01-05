@@ -3,7 +3,7 @@
  *********************************************************************************
  *                     Copyright (C) 2017 wystan
  *
- *       filename: bdd_in_browser.js
+ *       filename: server
  *    description:
  *        created: 2017-11-30 10:59:19
  *         author: wystan
@@ -34,6 +34,12 @@ function get_rtcprovider() {
     return provider;
 }
 
+const ERROR = {
+    SUCC  : 0,
+    ENOSR : 1,
+    ESRV  : 2
+};
+
 class RtcObject {
     constructor(objectType, id, sdp) {
         this.type = objectType;
@@ -56,14 +62,17 @@ class RtcProvider {
         this.handler = null;
         setImmediate(run_test);
     };
-    create_recver(offer, cb) {
+    create_recver(option, cb) {
         this.cb = cb;
         let req = {
-            "type": "request",
-            "action": "create",
-            "service": "rtcreceiver",
-            "sdp": offer
+            "type"    : "request",
+            "action"  : "create",
+            "service" : "rtcreceiver",
+            "audio"   : option.audio,
+            "video"   : option.video
         };
+        if(option.sdp) req.sdp = option.sdp;
+
         function callback(resp) {
             if (resp.type !== "response" || resp.action !== "create" || resp.service !== "rtcreceiver") return;
             if (resp.error !== 0) {
@@ -79,10 +88,10 @@ class RtcProvider {
     destroy_recver(id, cb) {
         this.cb = cb;
         let req = {
-            "type": "request",
-            "action": "destroy",
-            "service": "rtcreceiver",
-            "id": id,
+            "type"    : "request",
+            "action"  : "destroy",
+            "service" : "rtcreceiver",
+            "id"      : id,
         };
         function callback(resp) {
             if (resp.type !== "response" || resp.action !== "destroy" || resp.service !== "rtcreceiver") return;
@@ -95,14 +104,18 @@ class RtcProvider {
         this.handler = callback;
         this._send(req);
     };
-    create_sender(srcid, cb) {
+    create_sender(option, cb) {
         this.cb = cb;
         let req = {
-            "type": "request",
-            "action": "create",
-            "service": "rtcsender",
-            "sourceid": srcid
+            "type"     : "request",
+            "action"   : "create",
+            "service"  : "rtcsender",
+            "audio"    : option.audio,
+            "video"    : option.video,
+            "sourceid" : option.srcid,
         };
+        if (option.sdp) req.sdp = option.sdp;
+
         function callback(resp) {
             if (resp.type !== "response" || resp.action !== "create" || resp.service !== "rtcsender") return;
             if (resp.error !== 0) {
@@ -118,10 +131,10 @@ class RtcProvider {
     destroy_sender(id, cb) {
         this.cb = cb;
         let req = {
-            "type": "request",
-            "action": "destroy",
-            "service": "rtcsender",
-            "id": id,
+            "type"    : "request",
+            "action"  : "destroy",
+            "service" : "rtcsender",
+            "id"      : id,
         };
         function callback(resp) {
             if (resp.type !== "response" || resp.action !== "destroy" || resp.service !== "rtcsender") return;
@@ -134,17 +147,17 @@ class RtcProvider {
         this.handler = callback;
         this._send(req);
     };
-    setanswer(senderId, answer, cb) {
+    setanswer(id, answer, cb) {
         this.cb = cb;
         let req = {
-            "type": "request",
-            "action": "setanswer",
-            "service": "rtcsender",
-            "id": senderId,
-            "sdp": answer
+            "type"    : "request",
+            "action"  : "setanswer",
+            "service" : "",
+            "id"      : id,
+            "sdp"     : answer
         };
         function callback(resp) {
-            if (resp.type !== "response" || resp.action !== "setanswer" || resp.service !== "rtcsender") return;
+            if (resp.type !== "response" || resp.action !== "setanswer") return;
             if (resp.error !== 0) {
                 cb({"error": resp.error, "desc": resp.desc});
             } else {
@@ -194,28 +207,28 @@ function run_test() {
             loge("fail to create recver2:", err);
             return;
         }
-        r2 = obj;
-        prov.setanswer(s2.id, r2.sdp, function(err){
-            setTimeout(destroy_all, 10000);
+        s2 = obj;
+        prov.setanswer(r2.id, s2.sdp, function(err){
+            setTimeout(destroy_all, 3000);
         });
     }
 
-    function new_recver2(obj, err) {
-        if (err) {
-            loge("fail to create sender2");
-            return;
-        }
-        s2 = obj;
-        logi("create sender:", obj.id);
-        prov.create_recver(obj.sdp, setanswer2);
-    }
 
-    function new_sender2(err) {
+    function new_sender2(obj, err) {
         if (err) {
             loge("fail to set answer:", err);
             return;
         }
-        prov.create_sender(r1.id, new_recver2);
+        r2 = obj;
+        prov.create_sender({srcid: r1.id, audio: true, video: true, sdp: r2.sdp}, setanswer2);
+    }
+    function new_recver2(err) {
+        if (err) {
+            loge("fail to set answer:", err);
+            return;
+        }
+        logd("set answer1 success");
+        prov.create_recver({audio:true, video: true}, new_sender2);
     }
     function setanswer1(obj, err) {
         if (err) {
@@ -224,7 +237,7 @@ function run_test() {
         }
         r1 = obj;
         logi("create recver:", obj.id);
-        prov.setanswer(s1.id, r1.sdp, new_sender2);
+        prov.setanswer(s1.id, r1.sdp, new_recver2);
     }
     function new_recver1(obj, err) {
         if (err) {
@@ -233,9 +246,9 @@ function run_test() {
         }
         logi("create sender: ", obj.id);
         s1 = obj;
-        prov.create_recver(obj.sdp, setanswer1);
+        prov.create_recver({sdp: obj.sdp, audio: true, video: true}, setanswer1);
     }
-    prov.create_sender("", new_recver1);
+    prov.create_sender({srcid: "", audio:true, video:true}, new_recver1);
 }
 
 
